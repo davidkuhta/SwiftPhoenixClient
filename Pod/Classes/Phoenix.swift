@@ -51,7 +51,7 @@ public struct Phoenix {
      
      - returns: Phoenix.Message
      */
-    func create(single: Bool = true) -> [String: AnyObject] {
+    func create(_ single: Bool = true) -> [String: AnyObject] {
       if single {
         return [self.subject!: self.body!]
       } else {
@@ -63,7 +63,7 @@ public struct Phoenix {
   // MARK: Phoenix Binding
   class Binding {
     var event: String
-    var callback: AnyObject -> Void?
+    var callback: (AnyObject) -> Void?
     
     /**
      Initializes an object for handling event/callback bindings
@@ -73,7 +73,7 @@ public struct Phoenix {
      
      - returns: Tuple containing event and callback function
      */
-    init(event: String, callback: AnyObject -> Void?) {
+    init(event: String, callback: (AnyObject) -> Void?) {
       (self.event, self.callback) = (event, callback)
       create()
     }
@@ -83,7 +83,7 @@ public struct Phoenix {
      
      - returns: Tuple containing event and callback function
      */
-    func create() -> (String, AnyObject -> Void?) {
+    func create() -> (String, (AnyObject) -> Void?) {
       return (event, callback)
     }
   }
@@ -93,7 +93,7 @@ public struct Phoenix {
     var bindings: [Phoenix.Binding] = []
     var topic: String?
     var message: Phoenix.Message?
-    var callback: (AnyObject -> Void?)
+    var callback: ((AnyObject) -> Void?)
     weak var socket: Phoenix.Socket?
     
     /**
@@ -106,7 +106,7 @@ public struct Phoenix {
      
      - returns: Phoenix.Channel
      */
-    init(topic: String, message: Phoenix.Message, callback: (AnyObject -> Void), socket: Phoenix.Socket) {
+    init(topic: String, message: Phoenix.Message, callback: ((AnyObject) -> Void), socket: Phoenix.Socket) {
       (self.topic, self.message, self.callback, self.socket) = (topic, message, { callback($0) }, socket)
       reset()
     }
@@ -124,7 +124,7 @@ public struct Phoenix {
      - parameter event:    String event name
      - parameter callback: Function to run on event
      */
-    public func on(event: String, callback: (AnyObject -> Void)) {
+    public func on(_ event: String, callback: ((AnyObject) -> Void)) {
       bindings.append(Phoenix.Binding(event: event, callback: { callback($0) }))
     }
     
@@ -135,7 +135,7 @@ public struct Phoenix {
      
      - returns: Boolean
      */
-    func isMember(topic  topic: String) -> Bool {
+    func isMember(topic: String) -> Bool {
       return self.topic == topic
     }
     
@@ -144,7 +144,7 @@ public struct Phoenix {
      
      - parameter event: String event name
      */
-    func off(event: String) {
+    func off(_ event: String) {
       var newBindings: [Phoenix.Binding] = []
       for binding in bindings {
         if binding.event != event {
@@ -160,7 +160,7 @@ public struct Phoenix {
      - parameter triggerEvent: String event name
      - parameter msg:          Phoenix.Message to pass into event callback
      */
-    func trigger(triggerEvent: String, msg: Phoenix.Message) {
+    func trigger(_ triggerEvent: String, msg: Phoenix.Message) {
       for binding in bindings {
         if binding.event == triggerEvent {
           binding.callback(msg)
@@ -174,7 +174,7 @@ public struct Phoenix {
      - parameter event:   String event name
      - parameter message: Phoenix.Message payload
      */
-    func send(event: String, message: Phoenix.Message) {
+    func send(_ event: String, message: Phoenix.Message) {
       print("conn sending")
       let payload = Phoenix.Payload(topic: topic!, event: event, message: message)
       socket?.send(payload)
@@ -185,7 +185,7 @@ public struct Phoenix {
      
      - parameter message: Phoenix.Message to pass to the Socket#leave function
      */
-    func leave(message: Phoenix.Message) {
+    func leave(_ message: Phoenix.Message) {
       if let sock = socket {
         sock.leave(topic: topic!, message: message)
       }
@@ -221,13 +221,13 @@ public struct Phoenix {
     var channels: [Phoenix.Channel] = []
     
     var sendBuffer: [Void] = []
-    var sendBufferTimer = NSTimer()
+    var sendBufferTimer = Timer()
     let flushEveryMs = 1.0
     
-    var reconnectTimer = NSTimer()
+    var reconnectTimer = Timer()
     let reconnectAfterMs = 1.0
     
-    var heartbeatTimer = NSTimer()
+    var heartbeatTimer = Timer()
     let heartbeatDelay = 30.0
     
     var messageReference: UInt64 = UInt64.min // 0 (max: 18,446,744,073,709,551,615)
@@ -255,7 +255,7 @@ public struct Phoenix {
      
      - parameter callback: Function to run after close
      */
-    public func close(callback: (() -> ()) = {}) {
+    public func close(_ callback: (() -> ()) = {}) {
       if let connection = self.conn {
         connection.delegate = nil
         connection.disconnect()
@@ -272,9 +272,9 @@ public struct Phoenix {
       reconnectTimer.invalidate()
       sendBufferTimer.invalidate()
       
-      heartbeatTimer = NSTimer()
-      reconnectTimer = NSTimer()
-      sendBufferTimer = NSTimer()
+      heartbeatTimer = Timer()
+      reconnectTimer = Timer()
+      sendBufferTimer = Timer()
     }
     
     /**
@@ -282,7 +282,7 @@ public struct Phoenix {
      */
     func startHeartbeatTimer() {
       heartbeatTimer.invalidate()
-      heartbeatTimer = NSTimer.scheduledTimerWithTimeInterval(heartbeatDelay, target: self, selector: #selector(Phoenix.Socket.heartbeat), userInfo: nil, repeats: true)
+      heartbeatTimer = Timer.scheduledTimer(timeInterval: heartbeatDelay, target: self, selector: #selector(Phoenix.Socket.heartbeat), userInfo: nil, repeats: true)
     }
     
     /**
@@ -299,7 +299,7 @@ public struct Phoenix {
      */
     public func reconnect() {
       close() {
-        self.conn = WebSocket(url: NSURL(string: self.endPoint!)!)
+        self.conn = WebSocket(url: URL(string: self.endPoint!)!)
         if let connection = self.conn {
           connection.delegate = self
           connection.connect()
@@ -312,7 +312,7 @@ public struct Phoenix {
      */
     func resetBufferTimer() {
       sendBufferTimer.invalidate()
-      sendBufferTimer = NSTimer.scheduledTimerWithTimeInterval(flushEveryMs, target: self, selector: #selector(Phoenix.Socket.flushSendBuffer), userInfo: nil, repeats: true)
+      sendBufferTimer = Timer.scheduledTimer(timeInterval: flushEveryMs, target: self, selector: #selector(Phoenix.Socket.flushSendBuffer), userInfo: nil, repeats: true)
       sendBufferTimer.fire()
     }
     
@@ -329,9 +329,9 @@ public struct Phoenix {
      
      - parameter event: String event name
      */
-    func onClose(event: String) {
+    func onClose(_ event: String) {
       reconnectTimer.invalidate()
-      reconnectTimer = NSTimer.scheduledTimerWithTimeInterval(reconnectAfterMs, target: self, selector: #selector(Phoenix.Socket.reconnect), userInfo: nil, repeats: true)
+      reconnectTimer = Timer.scheduledTimer(timeInterval: reconnectAfterMs, target: self, selector: #selector(Phoenix.Socket.reconnect), userInfo: nil, repeats: true)
     }
     
     /**
@@ -339,7 +339,7 @@ public struct Phoenix {
      
      - parameter error: NSError
      */
-    func onError(error: NSError) {
+    func onError(_ error: NSError) {
       print("Error: \(error)")
       for chan in channels {
         let msg = Phoenix.Message(message: ["body": error.localizedDescription])
@@ -375,7 +375,7 @@ public struct Phoenix {
      
      - parameter chan: Phoenix.Channel
      */
-    func rejoin(chan: Phoenix.Channel) {
+    func rejoin(_ chan: Phoenix.Channel) {
       chan.reset()
       let joinMessage = Phoenix.Message(subject: "status", body: "joining")
       let payload = Phoenix.Payload(topic: chan.topic!, event: "phx_join", message: joinMessage)
@@ -390,7 +390,7 @@ public struct Phoenix {
      - parameter message:  Phoenix.Message payload
      - parameter callback: Function to trigger after join
      */
-    public func join(topic  topic: String, message: Phoenix.Message, callback: (AnyObject -> Void)) {
+    public func join(topic: String, message: Phoenix.Message, callback: ((AnyObject) -> Void)) {
       let chan = Phoenix.Channel(topic: topic, message: message, callback: callback, socket: self)
       channels.append(chan)
       if isConnected() {
@@ -405,7 +405,7 @@ public struct Phoenix {
      - parameter topic:   String topic name
      - parameter message: Phoenix.Message payload
      */
-    public func leave(topic  topic: String, message: Phoenix.Message) {
+    public func leave(topic: String, message: Phoenix.Message) {
       let leavingMessage = Phoenix.Message(subject: "status", body: "leaving")
       let payload = Phoenix.Payload(topic: topic, event: "leave", message: leavingMessage)
       send(payload)
@@ -424,13 +424,13 @@ public struct Phoenix {
      
      - parameter data: Phoenix.Payload
      */
-    public func send(data: Phoenix.Payload) {
+    public func send(_ data: Phoenix.Payload) {
       let callback = {
         (payload: Phoenix.Payload) -> Void in
         if let connection = self.conn {
           let json = self.payloadToJson(payload)
           print("json: \(json)")
-          connection.writeString(json)
+            connection.write(string: json)
         }
       }
       if isConnected() {
@@ -458,7 +458,7 @@ public struct Phoenix {
      
      - parameter payload: Phoenix.Payload
      */
-    func onMessage(payload: Phoenix.Payload) {
+    func onMessage(_ payload: Phoenix.Payload) {
       let (topic, event, message) = (payload.topic, payload.event, payload.message)
       for chan in channels {
         if chan.isMember(topic: topic) {
@@ -468,7 +468,7 @@ public struct Phoenix {
     }
     
     // WebSocket Delegate Methods
-    public func websocketDidReceiveMessage(socket: WebSocket, text: String) {
+    public func websocketDidReceiveMessage(_ socket: WebSocket, text: String) {
       print("socket message: \(text)")
       let json = JSON.parse(text as NSString as String as String)
       let (topic, event) = (
@@ -481,11 +481,11 @@ public struct Phoenix {
       onMessage(messagePayload)
     }
     
-    public func websocketDidReceiveData(socket: WebSocket, data: NSData) {
-      print("got some data: \(data.length)")
+    public func websocketDidReceiveData(_ socket: WebSocket, data: Data) {
+      print("got some data: \(data.count)")
     }
     
-    public func websocketDidDisconnect(socket: WebSocket, error: NSError?) {
+    public func websocketDidDisconnect(_ socket: WebSocket, error: NSError?) {
       if let err = error { onError(err) }
       print("socket closed: \(error?.localizedDescription)")
       onClose("reason: \(error?.localizedDescription)")
@@ -496,11 +496,11 @@ public struct Phoenix {
       onOpen()
     }
     
-    public func websocketDidWriteError(error: NSError?) {
+    public func websocketDidWriteError(_ error: NSError?) {
       onError(error!)
     }
     
-    func unwrappedJsonString(string: String?) -> String {
+    func unwrappedJsonString(_ string: String?) -> String {
       if let stringVal = string {
         return stringVal
       } else {
@@ -514,10 +514,10 @@ public struct Phoenix {
       return newRef
     }
     
-    func payloadToJson(payload: Phoenix.Payload) -> String {
+    func payloadToJson(_ payload: Phoenix.Payload) -> String {
       let ref = makeRef()
       var json = "{\"topic\": \"\(payload.topic)\", \"event\": \"\(payload.event)\", \"ref\": \"\(ref)\", "
-      if NSString(string: payload.message.toJsonString()).containsString("message") {
+      if NSString(string: payload.message.toJsonString()).contains("message") {
         let msg = JSON.parse(String(payload.message.toJsonString()))["message"]
         let jsonMessage = msg.toString(true)
         json += "\"payload\": \(jsonMessage)"
