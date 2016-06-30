@@ -17,10 +17,10 @@ public struct Path {
    
    - returns: String
    */
-  public static func removeTrailingSlash(path:String) -> String {
+  public static func removeTrailingSlash(_ path:String) -> String {
     if path.characters.count == 0 { return path }
-    if path.substringWithRange(Range<String.Index>(start: path.endIndex.advancedBy(-1), end: path.endIndex)) == "/" {
-      return path.substringWithRange(Range<String.Index>(start:path.startIndex, end: path.endIndex.advancedBy(-1)))
+    if path.substring(with: (path.characters.index(path.endIndex, offsetBy: -1) ..< path.endIndex)) == "/" {
+      return path.substring(with: (path.startIndex ..< path.characters.index(path.endIndex, offsetBy: -1)))
     }
     return path
   }
@@ -32,10 +32,10 @@ public struct Path {
    
    - returns: String
    */
-  public static func removeLeadingSlash(path:String) -> String {
+  public static func removeLeadingSlash(_ path:String) -> String {
     if path.characters.count == 0 { return path }
-    if path.substringWithRange(Range<String.Index>(start: path.startIndex, end: path.startIndex.advancedBy(1))) == "/" {
-      return path.substringWithRange(Range<String.Index>(start:path.startIndex.advancedBy(1), end: path.endIndex))
+    if path.substring(with: (path.startIndex ..< path.characters.index(path.startIndex, offsetBy: 1))) == "/" {
+      return path.substring(with: (path.characters.index(path.startIndex, offsetBy: 1) ..< path.endIndex))
     }
     return path
   }
@@ -47,7 +47,7 @@ public struct Path {
    
    - returns: String
    */
-  public static func removeLeadingAndTrailingSlashes(path:String) -> String {
+  public static func removeLeadingAndTrailingSlashes(_ path:String) -> String {
     return Path.removeTrailingSlash( Path.removeLeadingSlash(path) )
   }
   
@@ -61,7 +61,7 @@ public struct Path {
    
    - returns: String
    */
-  public static func endpointWithProtocol(prot:String, domainAndPort:String, path:String, transport:String) -> String {
+  public static func endpointWithProtocol(_ prot:String, domainAndPort:String, path:String, transport:String) -> String {
     var theProt = ""
     switch prot {
     case "ws":
